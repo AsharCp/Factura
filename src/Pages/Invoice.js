@@ -1,5 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState , useRef } from 'react'
 import { MdDeleteForever } from "react-icons/md";
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
 
 const Invoice = () => {
 
@@ -7,13 +10,10 @@ const Invoice = () => {
         {Product:'', Rate:'',Quantity:'',Amount:''}
     ]);
     const [total,setTotal] = useState(0);
-    // const [discount,setDiscount] = useState(0);
-    // const [tax,setTax] = useState(0);
-    // const [final,setFinal] = useState(total);
-
     const [discount, setDiscount] = useState(0);
     const [tax, setTax] = useState(0);
     const [shipping, setShipping] = useState(0);
+    const [noprint,setNoprint] = useState(true);
     const GrandTotal = total-discount+tax+shipping
 
 
@@ -52,16 +52,6 @@ const Invoice = () => {
     setTotal(newTotal);
     };
 
-    // const handleDiscount = (Discount) =>{
-    //     setFinal(total)
-    //     setFinal(final-Discount)
-    //     setDiscount(Discount)
-    // }
-    // const handleTax = (Tax) =>{
-    //     setFinal(total)
-    //     setTax(Tax)
-    //     setFinal(final+Tax)
-    // }
     const handleExtras = (id,Value) =>{
         if(id==="Discount")
         {
@@ -80,14 +70,40 @@ const Invoice = () => {
         
     }
 
+    const printRef = useRef();
+
+  const handleDownload = async () => {
+
+    setNoprint(false)
+    setTimeout(async () => {
+    const element = printRef.current;
+    const canvas = await html2canvas(element, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pageWidth;
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('invoice.pdf');
+
+    setNoprint(true);  // Show the component back
+    }, 100);  // 100ms delay to allow React DOM update
+    
+  }
+
     
   return (
-    <div className='w-full h-screen flex items-center flex-col justify-center'>
-        <div className='flex flex-row w-4/5 text-xs md:text-lg md:font-semibold bg-blue-950 text-white'>
+    <div className='flex flex-col justify-center w-full'>
+    <div ref={printRef} className='h-fit pt-20 flex items-center flex-col justify-center'>
+        <div className='flex flex-row w-4/5 h-12 text-xs md:text-lg md:font-semibold bg-blue-950 text-white'>
             <div className='w-3/6 py-2 ml-2'>Description</div>
-            <div className='w-1/6 py-2'>Rate</div>
+            <div className='w-1/6 py-2'>Rate(₹)</div>
             <div className='w-1/6 py-2'>Quantity</div>
-            <div className='w-1/6 py-2'>Amount</div>
+            <div className='w-1/6 py-2'>Amount(₹)</div>
         </div>
 
         {rows.map((row,index)=>(
@@ -107,8 +123,10 @@ const Invoice = () => {
     
         <div className='flex flex-col items-center w-full mt-2'>
             <div className='flex flex-row items-center justify-between w-4/5 mt-2'>
-                <button onClick={()=>handleAddRow()} className='border p-2 rounded hover:bg-green-600 hover:text-white'>New Item</button>
-                <div className='border text-right px-12 py-2 rounded font-semibold'>Total : ₹ {total}</div>
+                {noprint ? (<button onClick={()=>handleAddRow()} className='border p-2 rounded hover:bg-green-600 hover:text-white'>New Item</button>):
+                (<button onClick={()=>handleAddRow()} className='invisible border p-2 rounded hover:bg-green-600 hover:text-white'></button>)}
+                
+                <div className='text-2xl text-right py-2 rounded font-semibold'>Total : ₹ {total}</div>
             </div>
             
             <div className='flex flex-col items-end w-4/5 mt-2'>
@@ -129,12 +147,18 @@ const Invoice = () => {
                     <input type='number' placeholder='Shipping' className='w-40 border outline-none h-12 pl-4' onChange={(e)=>{
                         setShipping(handleExtras("Shipping",e.target.value))}}></input>
                 </div>
-                <div className='border h-12 flex items-center justify-center px-12'>Grand Total : ₹ {GrandTotal} </div>
+                <div className='font-bold text-3xl h-12 flex items-center justify-center py-8'>Grand Total : ₹ {GrandTotal} </div>
+                
             </div>            
         </div>
+
         
+    </div>
+    <div className='flex justify-center'>
+        <button onClick={handleDownload} className="mt-4 w-fit bg-blue-600 text-white px-4 py-2 rounded"> Download </button>
+    </div>
+    
     </div>
   )
 }
-// {discount!==0?total-discount:total}
 export default Invoice
