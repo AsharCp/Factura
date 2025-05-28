@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 const Template1 = () => {
+
     const [rows,setRows] = useState([
         {Product:'', Rate:'',Quantity:'',Amount:''}
     ]);
